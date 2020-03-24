@@ -1,0 +1,42 @@
+service: corona-dash
+
+package:
+  exclude:
+  - .coverage
+  - cover/**
+  - .circleci/**
+
+provider:
+  name: aws
+  runtime: python3.7
+  memorySize: 3000
+  stage: ${opt:stage, 'local', 'staging', 'production'}
+  region: 'eu-central-1'
+  endpointType: REGIONAL
+
+custom:
+  wsgi:
+    app: functions/app.server
+    packRequirements: false
+  pythonRequirements:
+    dockerizePip: non-linux
+
+  customDomain:
+    domainName: 'corona.fabianbosler.de'
+    stage: ${self:provider.stage}
+    certificateName: '*.fabianbosler.de'
+    createRoute53Record: true
+    endpointType: REGIONAL
+
+plugins:
+  - serverless-python-requirements
+  - serverless-domain-manager
+  - serverless-wsgi
+functions:
+  app:
+    handler: wsgi_handler.handler
+    events:
+      - http: ANY /
+      - http: 'ANY {proxy+}'
+      - https: ANY /
+      - https: 'ANY {proxy+}'
